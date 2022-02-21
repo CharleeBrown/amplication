@@ -29,7 +29,7 @@
 
   </div>
   
-Amplication is an open‑source development tool. It helps professional Node.js developers develop quality Node.js applications without spending time on repetitive coding tasks.
+Amplication is an open‑source development tool that assists professional Node.js developers create quality applications by cutting down time spent on repetitive coding tasks.
 
 Amplication auto-generates backend apps built with TypeScript and Node.js, and a client built with React
 
@@ -42,7 +42,7 @@ or [follow the instructions](#development) to run a local instance.
 
 Build database applications with:
 
-- Manage data models visually or through CLI
+- Data models managed visually or through CLI
 - Auto-generated human-editable source code
 - Node.js server built with Nest.js and Passport
 - REST API and GraphQL for CRUD with relations, sorting, filtering, pagination
@@ -58,7 +58,7 @@ See [Amplication website](http://amplication.com/) or [Amplication docs](http://
 
 ## Development
 
-Amplication is using a mono-repo with multiple packages. To initialize all the packages on a local development environment, follow these steps:
+Amplication uses a mono-repo with multiple packages. To initialize all the packages on a local development environment, follow these steps:
 
 Execute the following commands in the project root folder:
 ```
@@ -90,7 +90,7 @@ Define your data model and generate apps faster using Amplication Command Line I
 
 ### [Amplication Data Service Generator](./packages/amplication-data-service-generator/README.md)
 
-Amplication Data Service Generator is the component that generates the code of apps built with Amplication. It generates the models, Prisma client, REST API, GraphQL, authentication and authorization filters, and more. This package is used internally by Amplication server.
+Amplication Data Service Generator generates the code of apps built with Amplication. It produces the models, Prisma client, REST API, GraphQL, authentication and authorization filters, and more. This package is used internally by Amplication server.
 
 To use this package as a library or as a CLI with other projects, follow the instructions on the package page.
 
