@@ -1,46 +1,37 @@
 version: "3"
 services:
-  postgres:
+  server:
+    build:
+      context: .
+      args:
+        NPM_LOG_LEVEL: notice
+    ports:
+      - "${SERVER_PORT}:3000"
+    environment:
+      POSTGRESQL_URL: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@db:5432"
+      BCRYPT_SALT: "${BCRYPT_SALT}"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY}"
+      JWT_EXPIRATION: "${JWT_EXPIRATION}"
+    depends_on:
+      - migrate
+  migrate:
+    build:
+      context: .
+      args:
+        NPM_LOG_LEVEL: notice
+    command: npm run db:init
+    working_dir: /app/server
+    environment:
+      POSTGRESQL_URL: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@db:5432"
+      BCRYPT_SALT: "${BCRYPT_SALT}"
+    depends_on:
+      - db
+  db:
     image: postgres:12
-    restart: always
     environment:
       POSTGRES_USER: ${POSTGRESQL_USER}
       POSTGRES_PASSWORD: ${POSTGRESQL_PASSWORD}
     volumes:
       - postgres:/var/lib/postgresql/data
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NPM_LOG_LEVEL: notice
-    ports:
-      - "3000:3000"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      POSTGRESQL_URL: postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@postgres:5432
-      JWT_SECRET: "${JWT_SECRET}"
-      SERVICE_JWT_SECRET: "${SERVICE_JWT_SECRET}"
-      BCRYPT_SALT_OR_ROUNDS: "${BCRYPT_SALT_OR_ROUNDS}"
-      NODE_ENV: production
-      CORS_ENABLE: 1
-      PORT: 3000
-      HOST: http://localhost:3000
-      DEFAULT_DISK: "${DEFAULT_DISK}"
-      LOCAL_DISK_ROOT: "${LOCAL_DISK_ROOT}"
-      CONTAINER_BUILDER_DEFAULT: "${CONTAINER_BUILDER_DEFAULT}"
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NPM_LOG_LEVEL: notice
-    environment:
-      POSTGRESQL_URL: postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@postgres:5432
-    command: npm run migrate:up
-  scheduler:
-    image: amplication/scheduler
-    command: --request.url http://app:3000/system/update-statuses --request.method POST --schedule '* * * * *'
 volumes:
   postgres: ~
