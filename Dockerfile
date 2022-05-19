@@ -1,60 +1,46 @@
 # Use node as the base image
-FROM node:16.13.1-alpine3.14 AS node
-FROM node
+FROM node:16.13.1-alpine3.14 as builder
 
-FROM node as base
+# Define how verbose should npm install be
+ARG NPM_LOG_LEVEL=silent
+# Hide Open Collective message from install logs
+ENV OPENCOLLECTIVE_HIDE=1
+# Hiden NPM security message from install logs
+ENV NPM_CONFIG_AUDIT=false
+# Hide NPM funding message from install logs
+ENV NPM_CONFIG_FUND=false
+
+# Update npm to version 7
 RUN npm i -g npm@8.1.2
 
-# This stage creates a skeleton with package*.json to /app/
-FROM base as package-sources
-ARG NPM_LOG_LEVEL=silent
-RUN mkdir /app
-COPY lerna.json /app/
-COPY package*.json /app/
-COPY packages packages
-RUN cp --parents packages/*/package*.json /app/
+# Set the working directory
 WORKDIR /app
-RUN npm ci --loglevel=${NPM_LOG_LEVEL} --production
 
-FROM package-sources AS build
-ARG NPM_LOG_LEVEL=silent
+# Copy files specifying dependencies
+COPY server/package.json server/package-lock.json ./server/
+COPY admin-ui/package.json admin-ui/package-lock.json ./admin-ui/
 
-ENV OPENCOLLECTIVE_HIDE=1
+# Install dependencies
+RUN cd server; npm ci --loglevel=$NPM_LOG_LEVEL;
+RUN cd admin-ui; npm ci --loglevel=$NPM_LOG_LEVEL;
 
-#install all node_nodules in '/app/packages'
-RUN npm run bootstrap -- --loglevel=${NPM_LOG_LEVEL} --scope @amplication/server --scope @amplication/client --include-dependencies
+# Copy Prisma schema
+COPY server/prisma/schema.prisma ./server/prisma/
 
-#copy the content (code) from packages to /app/packages (mode_modules folders stay in place )
-COPY packages packages
+# Generate Prisma client
+RUN cd server; npm run prisma:generate;
 
-RUN npm run prisma:generate
-# prepare all the build/dist folders unders /app/packages
-RUN npm run build -- --scope @amplication/server --scope @amplication/client --include-dependencies
-#remove all node_modules (with dev dependencies) from /app/packages
-RUN npm run clean -- --yes
+# Copy all the files
+COPY . .
 
-FROM package-sources
+# Build code
+RUN set -e; (cd server; npm run build) & (cd admin-ui; npm run build)
 
-ENV OPENCOLLECTIVE_HIDE=1
-
+# Expose the port the server listens to
 EXPOSE 3000
 
-##is this duplicate?
-RUN npm ci --production --silent 
+# Make server to serve admin built files
+ENV SERVE_STATIC_ROOT_PATH=admin-ui/build
 
-#copy the content of /app/packages from the 'build' stage (without node_modules)
-COPY --from=build /app/packages /app/packages
-
-#install node_modules for all packages (for production)
-RUN npm run bootstrap -- -- --production --loglevel=silent --scope @amplication/server --scope @amplication/client --include-dependencies
-
-RUN npm run prisma:generate
-
-# Copy entrypoint script
-COPY docker-entrypoint.sh /entrypoint.sh
-# Give entrypoint script access permission
-RUN chmod 755 /entrypoint.sh
-
-ENTRYPOINT [ "/entrypoint.sh" ]
-
-CMD [ "node", "packages/amplication-server/dist/src/main"]
+# Run server
+CMD [ "node", "server/dist/main"]
